@@ -22,3 +22,5 @@
 
 # build folder
 build
+
+bazel-*

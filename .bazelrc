@@ -1,0 +1,2 @@
+# Cucumber-cpp bazelrc
+# Empty for now, but can add cucumber-specific build settings
