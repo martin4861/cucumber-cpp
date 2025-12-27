@@ -1,20 +1,16 @@
-# Root BUILD file for cucumber-cpp
-# Exports headers for use by src/ package
-# Cucumber-Cpp Bazel BUILD file
-# BDD testing framework with Cucumber/Gherkin for C++
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+load("@rules_cc//cc:cc_test.bzl", "cc_test")
 
 package(default_visibility = ["//visibility:public"])
 
-# Export all headers as a filegroup
 filegroup(
     name = "headers",
     srcs = glob(["include/**/*.hpp"]),
 )
 
-# Core cucumber-cpp source files (relative to src/ directory)
 CUKE_SOURCES = [
     "src/drivers/GenericDriver.cpp",
-    "src/drivers/GTestDriver.cpp",  # Enable GTest support
+    "src/drivers/GTestDriver.cpp",
     "src/ContextManager.cpp",
     "src/CukeCommands.cpp",
     "src/CukeEngine.cpp",
@@ -36,45 +32,63 @@ CUKE_SOURCES = [
 cc_library(
     name = "cucumber_main",
     srcs = CUKE_SOURCES + ["src/main.cpp"] + ["//:headers"],
-    includes = ["include"],
     copts = [
         "-std=c++17",
-        "-DCUCUMBER_CPP_STATIC_DEFINE",  # Static library define
-        "-DCUKE_ENABLE_GTEST=1",  # Enable GTest support
-        "-DCUKE_VERSION=\\\"0.6.0\\\"",  # Version for main.cpp
+        "-DCUCUMBER_CPP_STATIC_DEFINE",
+        "-DCUKE_ENABLE_GTEST=1",
+        "-DCUKE_VERSION=\\\"0.6.0\\\"",
     ],
-    deps = [
-        "@gtest//:gtest",  # GTest dependency
-        "@nlohmann_json//:json",  # JSON library
-        "@asio",  # ASIO for wire protocol server
-        "@tclap",  # Command-line argument parser
-    ],
+    includes = ["include"],
     linkopts = select({
         "@platforms//os:linux": ["-lpthread"],
         "@platforms//os:macos": [],
         "//conditions:default": [],
     }),
-    alwayslink = True,  # Ensure all symbols are available for step definitions
+    deps = [
+        "@asio",
+        "@googletest//:gtest",
+        "@nlohmann_json//:json",
+        "@tclap",
+    ],
+    alwayslink = True,
 )
 
 # Alternative: Library without main() for custom test runners
 cc_library(
     name = "cucumber_cpp_nomain",
     srcs = CUKE_SOURCES + ["//:headers"],
-    includes = ["include"],
     copts = [
         "-std=c++17",
         "-DCUCUMBER_CPP_STATIC_DEFINE",
         "-DCUKE_ENABLE_GTEST=1",
     ],
-    deps = [
-        "@gtest//:gtest",
-        "@nlohmann_json//:json",
-        "@asio",
-    ],
+    includes = ["include"],
     linkopts = select({
         "@platforms//os:linux": ["-lpthread"],
         "@platforms//os:macos": [],
         "//conditions:default": [],
     }),
+    deps = [
+        "@asio",
+        "@googletest//:gtest",
+        "@nlohmann_json//:json",
+    ],
+)
+
+cc_library(
+    name = "test_library",
+    hdrs = glob(["tests/utils/*.hpp"]),
+    strip_include_prefix = "tests",
+    deps = [":cucumber_cpp_nomain"],
+)
+
+cc_test(
+    name = "unit_test",
+    srcs = glob(["tests/unit/*.cpp"]),
+    includes = ["include"],
+    deps = [
+        ":cucumber_cpp_nomain",
+        ":test_library",
+        "@googletest//:gtest_main",
+    ],
 )
